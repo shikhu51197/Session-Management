@@ -2,55 +2,32 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { fetchAPI } from '@/lib/api';
 import Header from '@/components/Header';
 import { Clock, ArrowRight, Search, Zap, Star, ShieldCheck } from 'lucide-react';
-import type { Session } from '@/lib/types';
+import { useSessions } from '@/hooks/useApi';
 import Skeleton from '@/components/Skeleton';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const fallbackSessionImage = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=800&auto=format&fit=crop';
 
 export default function Home() {
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [inputValue, setInputValue] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const fetchSessions = (pageNum = 1, search = '') => {
-    setLoading(true);
-    const queryParams = new URLSearchParams();
-    if (search) queryParams.append('search', search);
-    queryParams.append('page', pageNum.toString());
-
-    fetchAPI<{ results: Session[]; count: number; next: string | null; previous: string | null }>(
-      `/bookings/sessions/?${queryParams.toString()}`
-    )
-      .then((data) => {
-        setSessions(data.results);
-        setTotalPages(Math.ceil(data.count / 6));
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching sessions:', error);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchSessions(page, searchQuery);
-  }, [page]);
+  const { data, isLoading, isFetching } = useSessions(page, searchQuery);
+  const sessions = data?.results || [];
+  const totalPages = Math.ceil((data?.count || 0) / 6);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
-    fetchSessions(1, searchQuery);
+    setSearchQuery(inputValue);
   };
 
   const formatPrice = (price: any) => {
@@ -130,8 +107,8 @@ export default function Home() {
                   <input 
                     type="text" 
                     placeholder="Search by skill, creator, or topic..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
                     className="w-full bg-white/10 backdrop-blur-2xl border border-white/10 rounded-[2rem] py-6 pl-16 pr-8 text-white placeholder-indigo-300/50 outline-none focus:ring-4 focus:ring-indigo-500/20 focus:bg-white/15 transition-all text-lg font-medium"
                   />
                 </div>
@@ -139,9 +116,10 @@ export default function Home() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   type="submit" 
-                  className="h-20 px-12 bg-white text-indigo-950 rounded-[2rem] flex items-center justify-center transition-all shadow-xl font-black uppercase tracking-widest text-sm w-full md:w-auto"
+                  disabled={isLoading || isFetching}
+                  className="h-20 px-12 bg-white text-indigo-950 rounded-[2rem] flex items-center justify-center transition-all shadow-xl font-black uppercase tracking-widest text-sm w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Search
+                  {isLoading || isFetching ? 'Searching...' : 'Search'}
                 </motion.button>
               </motion.form>
             </div>
@@ -169,7 +147,7 @@ export default function Home() {
 
           <div className="catalog-container">
             <AnimatePresence mode="wait">
-              {loading ? (
+              {isLoading ? (
                 <motion.div 
                   key="skeleton-grid"
                   initial={{ opacity: 0 }}
@@ -241,7 +219,7 @@ export default function Home() {
                   {sessions.length === 0 && (
                     <div className="col-span-full py-32 text-center bg-gray-50/50 rounded-[3rem] border-2 border-dashed border-gray-100">
                       <p className="text-gray-400 font-bold text-xl italic mb-4">No results found for your search.</p>
-                      <button onClick={() => { setSearchQuery(''); fetchSessions(1, ''); }} className="text-indigo-600 font-black uppercase tracking-widest text-xs hover:underline">Clear all filters</button>
+                      <button onClick={() => { setInputValue(''); setSearchQuery(''); setPage(1); }} className="text-indigo-600 font-black uppercase tracking-widest text-xs hover:underline">Clear all filters</button>
                     </div>
                   )}
                 </motion.div>
@@ -250,7 +228,7 @@ export default function Home() {
           </div>
 
           {/* Pagination Controls */}
-          {!loading && totalPages > 1 && (
+          {!isLoading && totalPages > 1 && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -258,7 +236,7 @@ export default function Home() {
             >
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
+                disabled={page === 1 || isFetching}
                 className="h-14 px-8 border border-gray-100 rounded-2xl font-black uppercase tracking-widest text-xs disabled:opacity-30 transition hover:bg-gray-50"
               >
                 Previous
@@ -268,7 +246,7 @@ export default function Home() {
               </span>
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                disabled={page === totalPages || isFetching}
                 className="h-14 px-8 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-xs disabled:opacity-30 transition hover:bg-indigo-600 shadow-lg"
               >
                 Next

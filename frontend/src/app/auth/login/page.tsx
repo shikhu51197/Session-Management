@@ -1,16 +1,35 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CredentialResponse, GoogleLogin } from '@react-oauth/google';
-import { fetchAPI, writeAuthSession } from '@/lib/api';
-import { useState } from 'react';
+import { fetchAPI, readCurrentUser, writeAuthSession } from '@/lib/api';
+import { useEffect, useState } from 'react';
 import { ShieldCheck, UserCheck, Star, Layout, Zap, ArrowRight } from 'lucide-react';
 import type { AuthResponse, UserRole } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [role, setRole] = useState<UserRole>('USER');
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'login_required') {
+      toast.error('Identity required. Please sign in to access this page.', {
+        id: 'login-required-toast',
+        duration: 4000,
+      });
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const user = readCurrentUser();
+    if (user) {
+      router.push(user.role === 'CREATOR' ? '/dashboard/creator' : '/dashboard/user');
+    }
+  }, [router]);
 
   const handleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
@@ -26,7 +45,7 @@ export default function Login() {
         }),
       });
       writeAuthSession(response);
-      
+
       router.push(response.user.role === 'CREATOR' ? '/dashboard/creator' : '/dashboard/user');
     } catch (error) {
       console.error('Login Failed:', error);
@@ -51,14 +70,14 @@ export default function Login() {
     }
   };
 
-  const clientIdMissing = !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID === '' || 
+  const clientIdMissing = !process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID === '' ||
     process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID.includes('dummy');
 
   return (
     <div className="min-h-screen flex items-stretch bg-white font-sans overflow-hidden">
       {/* Left side - Visual/Info */}
-      <motion.div 
+      <motion.div
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
@@ -66,9 +85,9 @@ export default function Login() {
       >
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-[30rem] h-[30rem] bg-indigo-500 rounded-full opacity-50 blur-[100px] animate-pulse"></div>
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-[30rem] h-[30rem] bg-indigo-700 rounded-full opacity-50 blur-[100px]"></div>
-        
+
         <div className="z-10">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -76,7 +95,7 @@ export default function Login() {
           >
             SESSIONS.
           </motion.h1>
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
@@ -92,7 +111,7 @@ export default function Login() {
             { icon: <UserCheck size={28} />, title: "Verified Experts", desc: "Every creator is vetted for technical excellence." },
             { icon: <Zap size={28} />, title: "Instant Access", desc: "Book and start your session in minutes." }
           ].map((item, idx) => (
-            <motion.div 
+            <motion.div
               key={item.title}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -110,7 +129,7 @@ export default function Login() {
           ))}
         </div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
@@ -122,20 +141,20 @@ export default function Login() {
       </motion.div>
 
       {/* Right side - Login Form */}
-      <motion.div 
+      <motion.div
         initial={{ x: 100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
         className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 md:p-24 bg-gray-50/30"
       >
         <div className="max-w-md w-full">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="mb-12 text-center lg:text-left"
           >
-            <h2 className="text-5xl font-black text-gray-900 mb-4 tracking-tighter leading-tight">Welcome <br/>back</h2>
+            <h2 className="text-5xl font-black text-gray-900 mb-4 tracking-tighter leading-tight">Welcome <br />back</h2>
             <p className="text-gray-400 font-medium text-lg italic">Sign in to your account to continue the journey.</p>
           </motion.div>
 
@@ -143,14 +162,13 @@ export default function Login() {
             <label className="block text-[10px] font-black text-gray-400 mb-5 uppercase tracking-[0.3em]">Identity Selection</label>
             <div className="flex gap-4">
               {['USER', 'CREATOR'].map((r) => (
-                <motion.button 
+                <motion.button
                   key={r}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setRole(r as UserRole)}
-                  className={`flex-1 py-5 px-6 rounded-3xl border-2 transition-all duration-500 font-black uppercase tracking-widest text-[10px] flex flex-col items-center gap-3 ${
-                    role === r ? 'border-indigo-600 bg-indigo-50 text-indigo-600 shadow-xl shadow-indigo-100' : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200 shadow-sm'
-                  }`}
+                  className={`flex-1 py-5 px-6 rounded-3xl border-2 transition-all duration-500 font-black uppercase tracking-widest text-[10px] flex flex-col items-center gap-3 ${role === r ? 'border-indigo-600 bg-indigo-50 text-indigo-600 shadow-xl shadow-indigo-100' : 'border-gray-100 bg-white text-gray-400 hover:border-gray-200 shadow-sm'
+                    }`}
                 >
                   {r === 'USER' ? <UserCheck size={28} strokeWidth={2.5} /> : <Layout size={28} strokeWidth={2.5} />}
                   <span>{r}</span>
@@ -159,7 +177,7 @@ export default function Login() {
             </div>
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -177,7 +195,7 @@ export default function Login() {
                   <p>OAuth Configuration Missing. Check .env settings.</p>
                 </div>
               ) : (
-                <div className="flex justify-center group">
+                <div className="w-full group">
                   <div className="w-full transform group-hover:scale-[1.02] transition-transform duration-500 shadow-2xl shadow-gray-200/50 rounded-full overflow-hidden">
                     <GoogleLogin
                       onSuccess={handleSuccess}
@@ -186,13 +204,13 @@ export default function Login() {
                       theme="filled_blue"
                       size="large"
                       text="signin_with"
-                      width="100%"
+                      width="500"
                     />
                   </div>
                 </div>
               )}
-              
-              <motion.button 
+
+              <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleDevLogin}
@@ -203,7 +221,7 @@ export default function Login() {
             </div>
           </motion.div>
 
-          <motion.p 
+          <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}

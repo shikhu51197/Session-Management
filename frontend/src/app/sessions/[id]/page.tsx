@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { fetchAPI } from '@/lib/api';
 import Script from 'next/script';
+import { useSession } from '@/hooks/useApi';
 import Header from '@/components/Header';
 import type { Booking, RazorpayOptions, RazorpayOrder, Session } from '@/lib/types';
 import toast from 'react-hot-toast';
@@ -12,14 +13,12 @@ import { Clock, ShieldCheck, Zap, ArrowLeft, Star, Users } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SessionDetail() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchAPI<Session>(`/bookings/sessions/${id}/`).then(setSession).catch(console.error);
-  }, [id]);
+  
+  const { data: session, isLoading: isSessionLoading } = useSession(id);
+  const [isBooking, setIsBooking] = useState(false);
 
   const handleBook = async () => {
     if (!session) return;
@@ -31,7 +30,7 @@ export default function SessionDetail() {
       return;
     }
 
-    setLoading(true);
+    setIsBooking(true);
     try {
       // 1. Create booking
       const booking = await fetchAPI<Booking>('/bookings/bookings/', {
@@ -78,11 +77,11 @@ export default function SessionDetail() {
       console.error(error);
       toast.error(error.message || 'Failed to book session. Please try again.');
     } finally {
-      setLoading(false);
+      setIsBooking(false);
     }
   };
 
-  if (!session) return (
+  if (isSessionLoading || !session) return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center">
       <div className="h-16 w-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
       <p className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Syncing with Expert...</p>
@@ -191,10 +190,10 @@ export default function SessionDetail() {
                 
                 <button
                   onClick={handleBook}
-                  disabled={loading}
+                  disabled={isBooking}
                   className="w-full py-6 bg-white text-indigo-950 rounded-[2rem] font-black text-xl hover:bg-indigo-50 transition transform hover:scale-[1.02] active:scale-[0.98] shadow-2xl disabled:opacity-50 relative overflow-hidden group/btn"
                 >
-                  <span className="relative z-10">{loading ? 'AUTHENTICATING...' : 'SECURE BOOKING'}</span>
+                  <span className="relative z-10">{isBooking ? 'AUTHENTICATING...' : 'SECURE BOOKING'}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-indigo-100 to-white translate-x-[-100%] group-hover/btn:translate-x-0 transition-transform duration-500"></div>
                 </button>
               </div>

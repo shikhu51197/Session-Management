@@ -1,48 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { fetchAPI, readCurrentUser } from '@/lib/api';
+import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
-import type { Booking } from '@/lib/types';
+import { useBookings, useStats } from '@/hooks/useApi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, CheckCircle, Clock, ArrowRight, BookOpen, Star } from 'lucide-react';
 import Skeleton from '@/components/Skeleton';
 
 export default function UserDashboard() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total_successful: 0, total_pending: 0 });
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const { data: bookingsData, isLoading: bookingsLoading, isFetching: bookingsFetching } = useBookings(page);
+  const { data: statsData, isLoading: statsLoading } = useStats();
 
-  const fetchData = (pageNum = 1) => {
-    const user = readCurrentUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    Promise.all([
-      fetchAPI<{ results: Booking[]; count: number }>('/bookings/bookings/?page=' + pageNum),
-      fetchAPI<{ total_successful: number; total_pending: number }>('/bookings/stats/')
-    ])
-      .then(([bookingsData, statsData]) => {
-        setBookings(bookingsData.results);
-        setTotalPages(Math.ceil(bookingsData.count / 6));
-        setStats(statsData);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching dashboard data:', error);
-        setLoading(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchData(page);
-  }, [page]);
+  const loading = bookingsLoading || statsLoading;
+  const bookings = bookingsData?.results || [];
+  const stats = statsData || { total_successful: 0, total_pending: 0 };
+  const totalPages = Math.ceil((bookingsData?.count || 0) / 6);
 
   return (
     <div className="min-h-screen bg-gray-50/50 flex flex-col font-sans">
@@ -189,7 +163,7 @@ export default function UserDashboard() {
             >
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
+                disabled={page === 1 || bookingsFetching}
                 className="h-14 px-10 border border-gray-100 rounded-2xl font-black uppercase tracking-widest text-[10px] disabled:opacity-30 transition hover:bg-white hover:shadow-xl active:scale-95 bg-white/50 backdrop-blur-md"
               >
                 Previous
@@ -201,7 +175,7 @@ export default function UserDashboard() {
               </div>
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                disabled={page === totalPages || bookingsFetching}
                 className="h-14 px-10 bg-gray-900 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] disabled:opacity-30 transition hover:bg-indigo-600 shadow-2xl active:scale-95"
               >
                 Next

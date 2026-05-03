@@ -12,12 +12,18 @@ export function middleware(request: NextRequest) {
   // Define protected routes
   const isCreatorRoute = path.startsWith('/dashboard/creator');
   const isUserRoute = path.startsWith('/dashboard/user');
+  const isProfileRoute = path.startsWith('/profile');
+  const isSessionDetailRoute = path.startsWith('/sessions/');
+  const isAuthRoute = path.startsWith('/auth');
 
-  if (isCreatorRoute || isUserRoute) {
-    if (!userCookie) {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
-    }
+  // 1. Protection for unauthenticated users
+  if ((isCreatorRoute || isUserRoute || isProfileRoute || isSessionDetailRoute) && !userCookie) {
+    // Redirect to login page with error param if trying to access protected content while logged out
+    return NextResponse.redirect(new URL('/auth/login?error=login_required', request.url));
+  }
 
+  // 2. Role-based protection for dashboards (for authenticated users)
+  if (userCookie && (isCreatorRoute || isUserRoute)) {
     try {
       const user = JSON.parse(userCookie.value);
       
@@ -29,7 +35,19 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard/creator', request.url));
       }
     } catch (e) {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+      // If cookie is invalid, redirect to home
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  }
+
+  // 3. Redirect logged-in users away from auth pages
+  if (isAuthRoute && userCookie) {
+    try {
+      const user = JSON.parse(userCookie.value);
+      const dashboardPath = user.role === 'CREATOR' ? '/dashboard/creator' : '/dashboard/user';
+      return NextResponse.redirect(new URL(dashboardPath, request.url));
+    } catch (e) {
+      // If cookie is invalid, let them proceed to auth page
     }
   }
 
@@ -37,5 +55,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: ['/dashboard/:path*', '/auth/:path*', '/profile/:path*', '/sessions/:path*'],
 };

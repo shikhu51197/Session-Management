@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 };
 
 import { Toaster } from 'react-hot-toast';
+import Providers from '@/components/Providers';
 
 export default function RootLayout({
   children,
@@ -19,16 +20,18 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'dummy-client-id'}>
-          {children}
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              className: 'rounded-2xl font-bold text-sm bg-white shadow-2xl border border-gray-50 p-4',
-              duration: 4000,
-            }}
-          />
-        </GoogleOAuthProvider>
+        <Providers>
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'dummy-client-id'}>
+            {children}
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                className: 'rounded-2xl font-bold text-sm bg-white shadow-2xl border border-gray-50 p-4',
+                duration: 4000,
+              }}
+            />
+          </GoogleOAuthProvider>
+        </Providers>
       </body>
     </html>
   );

@@ -26,11 +26,20 @@ const emptyForm: SessionFormData = {
   category: 'General',
 };
 
+import { useSessions, useBookings, useStats, useSessionMutation, useDeleteSession } from '@/hooks/useApi';
+
 export default function CreatorDashboard() {
-  const [sessions, setSessions] = useState<Session[]>([]);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ total_successful: 0, total_pending: 0 });
+  const currentUser = readCurrentUser();
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [bookingsPage, setBookingsPage] = useState(1);
+
+  const { data: sessionsData, isLoading: sessionsLoading, isFetching: sessionsFetching } = useSessions(sessionsPage);
+  const { data: bookingsData, isLoading: bookingsLoading, isFetching: bookingsFetching } = useBookings(bookingsPage);
+  const { data: statsData, isLoading: statsLoading } = useStats();
+
+  const sessionMutation = useSessionMutation();
+  const deleteMutation = useDeleteSession();
+
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -38,40 +47,17 @@ export default function CreatorDashboard() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [formData, setFormData] = useState<SessionFormData>(emptyForm);
-  const [sessionsPage, setSessionsPage] = useState(1);
-  const [sessionsTotalPages, setSessionsTotalPages] = useState(1);
-  const [bookingsPage, setBookingsPage] = useState(1);
-  const [bookingsTotalPages, setBookingsTotalPages] = useState(1);
 
-  const fetchData = (sPage = 1, bPage = 1) => {
-    const currentUser = readCurrentUser();
-    if (!currentUser) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    Promise.all([
-      fetchAPI<{ results: Session[]; count: number }>('/bookings/sessions/?page=' + sPage),
-      fetchAPI<{ results: Booking[]; count: number }>('/bookings/bookings/?page=' + bPage),
-      fetchAPI<{ total_successful: number; total_pending: number }>('/bookings/stats/')
-    ])
-      .then(([sessionsData, bookingsData, statsData]) => {
-        setSessions(sessionsData.results.filter((session) => session.creator.id === currentUser.id));
-        setSessionsTotalPages(Math.ceil(sessionsData.count / 6));
-        setBookings(bookingsData.results);
-        setBookingsTotalPages(Math.ceil(bookingsData.count / 6));
-        setStats(statsData);
-      })
-      .catch((error) => {
-        console.error('Error fetching creator data:', error);
-      })
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchData(sessionsPage, bookingsPage);
-  }, [sessionsPage, bookingsPage]);
+  const loading = sessionsLoading || bookingsLoading || statsLoading;
+  
+  const sessions = (sessionsData?.results || []).filter(
+    (session) => session.creator.id === currentUser?.id
+  );
+  const sessionsTotalPages = Math.ceil((sessionsData?.count || 0) / 6);
+  
+  const bookings = bookingsData?.results || [];
+  const bookingsTotalPages = Math.ceil((bookingsData?.count || 0) / 6);
+  const stats = statsData || { total_successful: 0, total_pending: 0 };
 
   const isDirty = !editingSession || 
     editingSession.title !== formData.title ||
@@ -114,37 +100,30 @@ export default function CreatorDashboard() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    try {
-      const method = editingSession ? 'PATCH' : 'POST';
-      const endpoint = editingSession ? `/bookings/sessions/${editingSession.id}/` : '/bookings/sessions/';
-      const data = new FormData();
+    const data = new FormData();
+    data.append('title', formData.title);
+    data.append('description', formData.description);
+    data.append('price', formData.price);
+    data.append('duration', formData.duration);
+    data.append('category', formData.category);
 
-      data.append('title', formData.title);
-      data.append('description', formData.description);
-      data.append('price', formData.price);
-      data.append('duration', formData.duration);
-      data.append('category', formData.category);
-
-      if (selectedFile) {
-        data.append('image', selectedFile);
-      }
-
-      const savedSession = await fetchAPI<Session>(endpoint, {
-        method,
-        body: data,
-      });
-
-      setSessions((current) => (
-        editingSession
-          ? current.map((session) => session.id === savedSession.id ? savedSession : session)
-          : [...current, savedSession]
-      ));
-      toast.success(editingSession ? 'Session updated successfully!' : 'Session published successfully!');
-      setShowModal(false);
-    } catch (error) {
-      console.error('Error saving session:', error);
-      toast.error('Failed to save session. Please check your inputs.');
+    if (selectedFile) {
+      data.append('image', selectedFile);
     }
+
+    sessionMutation.mutate(
+      { id: editingSession?.id, data },
+      {
+        onSuccess: () => {
+          toast.success(editingSession ? 'Session updated successfully!' : 'Session published successfully!');
+          setShowModal(false);
+        },
+        onError: (error) => {
+          console.error('Error saving session:', error);
+          toast.error('Failed to save session. Please check your inputs.');
+        },
+      }
+    );
   };
 
   const handleOpenDelete = (id: string) => {
@@ -155,16 +134,17 @@ export default function CreatorDashboard() {
   const handleDeleteSession = async () => {
     if (!deletingSessionId) return;
 
-    try {
-      await fetchAPI<null>(`/bookings/sessions/${deletingSessionId}/`, { method: 'DELETE' });
-      setSessions((current) => current.filter((session) => session.id !== deletingSessionId));
-      toast.success('Session removed permanently.');
-      setShowDeleteModal(false);
-      setDeletingSessionId(null);
-    } catch (error) {
-      console.error('Error deleting session:', error);
-      toast.error('Failed to delete session. It may have active bookings.');
-    }
+    deleteMutation.mutate(deletingSessionId, {
+      onSuccess: () => {
+        toast.success('Session removed permanently.');
+        setShowDeleteModal(false);
+        setDeletingSessionId(null);
+      },
+      onError: (error) => {
+        console.error('Error deleting session:', error);
+        toast.error('Failed to delete session. It may have active bookings.');
+      },
+    });
   };
 
   const confirmedRevenue = bookings.reduce((total, booking) => {
@@ -288,9 +268,9 @@ export default function CreatorDashboard() {
               {/* Sessions Pagination */}
               {!loading && sessionsTotalPages > 1 && (
                 <div className="mt-8 flex justify-center items-center gap-3">
-                  <button onClick={() => setSessionsPage(p => Math.max(1, p - 1))} disabled={sessionsPage === 1} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronLeft size={16} /></button>
+                  <button onClick={() => setSessionsPage(p => Math.max(1, p - 1))} disabled={sessionsPage === 1 || sessionsFetching} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronLeft size={16} /></button>
                   <span className="text-[10px] font-black uppercase tracking-widest">{sessionsPage} / {sessionsTotalPages}</span>
-                  <button onClick={() => setSessionsPage(p => Math.min(sessionsTotalPages, p + 1))} disabled={sessionsPage === sessionsTotalPages} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronRight size={16} /></button>
+                  <button onClick={() => setSessionsPage(p => Math.min(sessionsTotalPages, p + 1))} disabled={sessionsPage === sessionsTotalPages || sessionsFetching} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronRight size={16} /></button>
                 </div>
               )}
             </section>
@@ -358,9 +338,9 @@ export default function CreatorDashboard() {
               {/* Bookings Pagination */}
               {!loading && bookingsTotalPages > 1 && (
                 <div className="mt-8 flex justify-center items-center gap-3">
-                  <button onClick={() => setBookingsPage(p => Math.max(1, p - 1))} disabled={bookingsPage === 1} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronLeft size={16} /></button>
+                  <button onClick={() => setBookingsPage(p => Math.max(1, p - 1))} disabled={bookingsPage === 1 || bookingsFetching} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronLeft size={16} /></button>
                   <span className="text-[10px] font-black uppercase tracking-widest">{bookingsPage} / {bookingsTotalPages}</span>
-                  <button onClick={() => setBookingsPage(p => Math.min(bookingsTotalPages, p + 1))} disabled={bookingsPage === bookingsTotalPages} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronRight size={16} /></button>
+                  <button onClick={() => setBookingsPage(p => Math.min(bookingsTotalPages, p + 1))} disabled={bookingsPage === bookingsTotalPages || bookingsFetching} className="p-3 border border-gray-100 rounded-xl disabled:opacity-30 hover:bg-gray-50 transition"><ChevronRight size={16} /></button>
                 </div>
               )}
             </section>
@@ -502,10 +482,10 @@ export default function CreatorDashboard() {
                 >
                   <button 
                     type="submit" 
-                    disabled={!isDirty}
+                    disabled={!isDirty || sessionMutation.isPending}
                     className="w-full py-6 bg-indigo-600 text-white rounded-[2rem] font-black text-lg uppercase tracking-[0.2em] hover:bg-indigo-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-500 shadow-2xl shadow-indigo-200 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed group relative overflow-hidden"
                   >
-                    <span className="relative z-10">{editingSession ? 'Update Experience' : 'Launch Session'}</span>
+                    <span className="relative z-10">{sessionMutation.isPending ? 'PROCESSING...' : (editingSession ? 'Update Experience' : 'Launch Session')}</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-600 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-700"></div>
                   </button>
                   {isDirty && (
@@ -546,9 +526,10 @@ export default function CreatorDashboard() {
                 </button>
                 <button
                   onClick={handleDeleteSession}
-                  className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-700 transition shadow-2xl shadow-red-100"
+                  disabled={deleteMutation.isPending}
+                  className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-700 transition shadow-2xl shadow-red-100 disabled:opacity-50"
                 >
-                  Delete
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </motion.div>
