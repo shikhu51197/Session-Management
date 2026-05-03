@@ -63,6 +63,45 @@ A high-performance, production-ready marketplace for expert 1-on-1 sessions. Bui
 3. **User Flow**: Browse the catalog (note the skeleton loaders), book a session via the Secure Razorpay portal.
 4. **Validation**: Check your User Dashboard to see the booking immediately appear.
    
+   graph TD
+    %% Main Entry
+    App[App / Root] --> HomePage[Home / Catalog Page]
+
+    %% Authentication Flow
+    HomePage --> AuthPage[Auth Flow Page]
+    AuthPage -->|OAuth Login| LoginProcess[JWT Handling]
+    LoginProcess --> HomePage
+
+    %% User Path
+    HomePage --> SessionDetail[Session Detail Page]
+    SessionDetail -->|Book Now| Payment[Razorpay Checkout]
+    Payment --> UserDash[User Dashboard]
+    UserDash --> HomePage
+
+    %% Creator Path
+    HomePage --> CreatorDash[Creator Dashboard]
+    CreatorDash -->|Create Session| Modal[Create Session Modal]
+    Modal -->|Submit| CreatorDash
+    CreatorDash -->|Edit| EditModal[Edit Session Modal]
+    EditModal --> CreatorDash
+    CreatorDash --> HomePage
+
+    %% Profile
+    UserDash --> Profile[Profile Page]
+    CreatorDash --> Profile[Profile Page]
+    Profile --> HomePage
+
+    %% Styling
+    style App fill:#1a1a1a,stroke:#fff,color:#fff
+    style HomePage fill:#2d2d2d,stroke:#fff,color:#fff
+    style AuthPage fill:#2d2d2d,stroke:#fff,color:#fff
+    style UserDash fill:#2d2d2d,stroke:#fff,color:#fff
+    style CreatorDash fill:#2d2d2d,stroke:#fff,color:#fff
+    style Profile fill:#2d2d2d,stroke:#fff,color:#fff
+    style SessionDetail fill:#2d2d2d,stroke:#fff,color:#fff
+
+
+   
 <a href="https://drive.google.com/file/d/1EN6rLFG5tXNCD8Em2diqot_7aLcsMOVo/view?usp=sharing">![Demo video of Game](https://img.shields.io/badge/Demo_Video_Of_Game-Click_ME-brightgreen.svg?style=plastic&logo=YouTube&logoColor=red)</a>
 
 
