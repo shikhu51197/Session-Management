@@ -111,7 +111,53 @@ The PostgreSQL database contains the following core tables:
 ```
 
 ## 🧪 Deployment & Local Setup
-1. **Clone**: Pull the repository.
-2. **Environment**: Configure `.env` with `RAZORPAY_KEY_ID` and `GOOGLE_CLIENT_ID`.
-3. **Docker**: Run `docker compose up --build`.
-4. **Access**: Open `http://localhost` to view the platform.
+
+### 1. Prerequisites
+Ensure you have the following installed:
+- **Docker** & **Docker Compose**
+- **Git**
+- **Razorpay Account** (for API keys)
+- **Google Cloud Console Project** (for OAuth Client ID)
+
+### 2. Initial Setup
+```bash
+# 1. Clone the repository
+git clone https://github.com/shikhu51197/Session-Management.git
+cd Session-Management
+
+# 2. Configure environment variables
+cp .env.example .env
+# Edit .env with your credentials (RAZORPAY_KEY_ID, GOOGLE_OAUTH_CLIENT_ID, etc.)
+```
+
+### 3. Launching the Application
+```bash
+# Start all services (Database, MinIO, Backend, Frontend, Nginx)
+docker compose up --build -d
+
+# Verify services are running
+docker compose ps
+```
+
+### 4. Database Initialization
+```bash
+# Run migrations
+docker exec sessions-backend python manage.py migrate
+
+# Seed initial data (optional)
+docker exec sessions-backend python manage.py loaddata initial_data.json
+```
+
+### 5. Accessing the Platform
+- **Frontend**: [http://localhost](http://localhost)
+- **Django Admin**: [http://localhost/admin/](http://localhost/admin/)
+- **MinIO Console**: [http://localhost:9001](http://localhost:9001)
+
+---
+
+## ☁️ Production Deployment Considerations
+When moving to production (e.g., AWS, DigitalOcean, GCP):
+1. **Security**: Change all default passwords in `.env`.
+2. **Nginx**: Update `nginx.conf` with your domain name and SSL certificates.
+3. **Database**: Use a managed database service (like RDS) for high availability.
+4. **Environment**: Set `DEBUG=False` in the backend configuration.
