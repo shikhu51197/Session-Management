@@ -1,5 +1,9 @@
 # Sessions Marketplace: Senior Full-Stack Engineering Showcase
+   
+<a href="https://drive.google.com/file/d/1EN6rLFG5tXNCD8Em2diqot_7aLcsMOVo/view?usp=sharing">![Demo video of Game](https://img.shields.io/badge/Demo_Video_Of_Game-Click_ME-brightgreen.svg?style=plastic&logo=YouTube&logoColor=red)</a>
 
+
+---
 A high-performance, production-ready marketplace for expert 1-on-1 sessions. Built with a focus on architecture, security, and premium user experience.
 
 ## 🚀 Key Architectural Features (Senior Engineer Framework)
@@ -87,9 +91,4 @@ graph TD;
 ```
 
 ---
-   
-<a href="https://drive.google.com/file/d/1EN6rLFG5tXNCD8Em2diqot_7aLcsMOVo/view?usp=sharing">![Demo video of Game](https://img.shields.io/badge/Demo_Video_Of_Game-Click_ME-brightgreen.svg?style=plastic&logo=YouTube&logoColor=red)</a>
 
-
----
-*Developed as a high-value portfolio project demonstrating end-to-end full-stack mastery.*
