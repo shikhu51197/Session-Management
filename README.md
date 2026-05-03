@@ -62,6 +62,9 @@ A high-performance, production-ready marketplace for expert 1-on-1 sessions. Bui
 2. **Creator Flow**: Visit the Dashboard, create a high-impact session with a banner.
 3. **User Flow**: Browse the catalog (note the skeleton loaders), book a session via the Secure Razorpay portal.
 4. **Validation**: Check your User Dashboard to see the booking immediately appear.
+   
+<a href="https://drive.google.com/file/d/1EN6rLFG5tXNCD8Em2diqot_7aLcsMOVo/view?usp=sharing">![Demo video of Game](https://img.shields.io/badge/Demo_Video_Of_Game-Click_ME-brightgreen.svg?style=plastic&logo=YouTube&logoColor=red)</a>
+
 
 ---
 *Developed as a high-value portfolio project demonstrating end-to-end full-stack mastery.*
