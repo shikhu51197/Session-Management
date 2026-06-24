@@ -64,10 +64,34 @@ export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): 
     headers,
   };
 
-  const response = await fetch(url, config);
+  let response = await fetch(url, config);
   
-  if (response.status === 401) {
-    if (typeof window !== 'undefined') {
+  if (response.status === 401 && typeof window !== 'undefined') {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      try {
+        const refreshRes = await fetch(`${API_URL}/core/auth/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+        
+        if (refreshRes.ok) {
+          const { access } = await refreshRes.json();
+          localStorage.setItem('access_token', access);
+          
+          // Retry the original request
+          headers['Authorization'] = `Bearer ${access}`;
+          response = await fetch(url, { ...options, headers });
+        } else {
+          clearAuthSession();
+          window.location.href = '/auth/login';
+        }
+      } catch (e) {
+        clearAuthSession();
+        window.location.href = '/auth/login';
+      }
+    } else {
       clearAuthSession();
       window.location.href = '/auth/login';
     }

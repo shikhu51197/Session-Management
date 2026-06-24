@@ -67,6 +67,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': env.db('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}')
 }
+DATABASES['default']['CONN_MAX_AGE'] = env.int('CONN_MAX_AGE', default=60)
 
 if 'test' in sys.argv:
     DATABASES['default'] = env.db('TEST_DATABASE_URL', default=f'sqlite:///{BASE_DIR / "test.sqlite3"}')
@@ -128,6 +129,12 @@ SIMPLE_JWT = {
 # Session settings
 SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
 SESSION_COOKIE_SAMESITE = env('SESSION_COOKIE_SAMESITE', default='Lax')
+
+# Security Headers
+SECURE_BROWSER_XSS_FILTER = env.bool('SECURE_BROWSER_XSS_FILTER', default=True)
+SECURE_CONTENT_TYPE_NOSNIFF = env.bool('SECURE_CONTENT_TYPE_NOSNIFF', default=True)
+X_FRAME_OPTIONS = env('X_FRAME_OPTIONS', default='DENY')
+
 
 # Payment config (Razorpay)
 RAZORPAY_KEY_ID = env('RAZORPAY_KEY_ID', default='')
