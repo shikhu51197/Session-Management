@@ -21,7 +21,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const fetchData = useCallback(async <T,>(key: string, fetcher: (signal: AbortSignal) => Promise<T>): Promise<T> => {
     // Return existing pending request if any (deduplication)
-    if (pendingRequests.current[key]) {
+    if (key in pendingRequests.current) {
       return pendingRequests.current[key];
     }
 
