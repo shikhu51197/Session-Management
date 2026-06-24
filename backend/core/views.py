@@ -38,7 +38,7 @@ class GoogleLoginView(views.APIView):
                 return Response({
                     'access': str(refresh.access_token),
                     'refresh': str(refresh),
-                    'user': UserSerializer(user).data
+                    'user': UserSerializer(user, context={'request': request}).data
                 })
             except ValueError as e:
                 return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -49,10 +49,10 @@ class UserProfileView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(UserSerializer(request.user).data)
+        return Response(UserSerializer(request.user, context={'request': request}).data)
 
     def patch(self, request):
-        serializer = UserSerializer(request.user, data=request.data, partial=True)
+        serializer = UserSerializer(request.user, data=request.data, partial=True, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
