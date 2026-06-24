@@ -25,7 +25,7 @@ export function middleware(request: NextRequest) {
   // 2. Role-based protection for dashboards (for authenticated users)
   if (userCookie && (isCreatorRoute || isUserRoute)) {
     try {
-      const user = JSON.parse(userCookie.value);
+      const user = JSON.parse(decodeURIComponent(userCookie.value));
       
       if (isCreatorRoute && user.role !== 'CREATOR') {
         return NextResponse.redirect(new URL('/dashboard/user', request.url));
@@ -43,7 +43,7 @@ export function middleware(request: NextRequest) {
   // 3. Redirect logged-in users away from auth pages
   if (isAuthRoute && userCookie) {
     try {
-      const user = JSON.parse(userCookie.value);
+      const user = JSON.parse(decodeURIComponent(userCookie.value));
       const dashboardPath = user.role === 'CREATOR' ? '/dashboard/creator' : '/dashboard/user';
       return NextResponse.redirect(new URL(dashboardPath, request.url));
     } catch (e) {

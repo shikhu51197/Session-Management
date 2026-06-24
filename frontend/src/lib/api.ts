@@ -24,7 +24,7 @@ export function writeAuthSession(auth: AuthResponse) {
     localStorage.setItem('refresh_token', auth.refresh);
     localStorage.setItem('user', JSON.stringify(auth.user));
     // Set cookie for middleware to read
-    document.cookie = `user=${JSON.stringify(auth.user)}; path=/; max-age=604800; SameSite=Lax`;
+    document.cookie = `user=${encodeURIComponent(JSON.stringify(auth.user))}; path=/; max-age=604800; SameSite=Lax`;
   }
 }
 
