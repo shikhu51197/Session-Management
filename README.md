@@ -7,7 +7,9 @@
 A high-performance, production-ready marketplace for expert 1-on-1 sessions. Built with a focus on architecture, security, and premium user experience.
 
 frontend deploy link :- https://session-management-theta.vercel.app
+
 Backend Deploy link :- https://session-management-40wt.onrender.com
+
 Database deploy link :- postgresql://session_db_72er_user:39tvCBVFK8oGW2jgrRAj1UJILcuSEMiB@dpg-d8u0lco0697c73d5pthg-a/session_db_72er
 
 ## 🚀 Key Architectural Features (Senior Engineer Framework)
