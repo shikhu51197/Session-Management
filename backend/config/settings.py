@@ -141,7 +141,9 @@ GOOGLE_OAUTH_CLIENT_SECRET = env('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 # Storage Config
 STORAGES = {
     'default': {
-        'BACKEND': 'django.core.files.storage.FileSystemStorage' if env.bool('USE_LOCAL_STORAGE', default=False) else 'core.storage.LocalS3Storage',
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    } if env.bool('USE_LOCAL_STORAGE', default=False) else {
+        'BACKEND': 'core.storage.LocalS3Storage',
         'OPTIONS': {
             'access_key': env('AWS_ACCESS_KEY_ID', default='minioadmin'),
             'secret_key': env('AWS_SECRET_ACCESS_KEY', default='minioadmin'),
