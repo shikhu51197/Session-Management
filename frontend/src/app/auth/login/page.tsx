@@ -3,13 +3,13 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { CredentialResponse, GoogleLogin } from '@react-oauth/google';
 import { fetchAPI, readCurrentUser, writeAuthSession } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { ShieldCheck, UserCheck, Star, Layout, Zap, ArrowRight } from 'lucide-react';
 import type { AuthResponse, UserRole } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
-export default function Login() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [role, setRole] = useState<UserRole>('USER');
@@ -233,5 +233,13 @@ export default function Login() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
